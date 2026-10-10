@@ -134,4 +134,5 @@ async def test_flow():
         # Don't close the browser — user might want to interact
         # await browser.close()
 
-await test_flow()
+import asyncio
+asyncio.run(test_flow())
