@@ -14,23 +14,46 @@ def sh(cmd, timeout=60):
     except Exception as e:
         return ""
 
+def sh_live(cmd, timeout=600):
+    """Run with real-time output so user sees progress."""
+    print(f"  $ {cmd[:80]}", flush=True)
+    proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT, text=True, bufsize=1)
+    try:
+        for line in proc.stdout:
+            line = line.strip()
+            if line and ("Setting up" in line or "Unpacking" in line or "%" in line or "Get:" in line):
+                print(f"    {line[:100]}", flush=True)
+        proc.wait(timeout=timeout)
+    except Exception as e:
+        proc.kill()
+        print(f"    ⚠️ {e}", flush=True)
+    return proc.returncode == 0
+
 def alive(pattern):
     return bool(sh(f"pgrep -f '{pattern}'"))
 
 def install():
-    print("📦 Installing (5-10 min, one time only)...")
-    sh("apt-get update -qq", 120)
-    sh("DEBIAN_FRONTEND=noninteractive apt-get install -y -qq xfce4 xfce4-terminal tigervnc-standalone-server websockify dbus-x11 > /dev/null 2>&1", 600)
+    print("📦 [1/5] apt update...", flush=True)
+    sh_live("apt-get update -qq", 120)
+    print("📦 [2/5] Installing desktop + VNC (this is the slow one)...", flush=True)
+    sh_live("DEBIAN_FRONTEND=noninteractive apt-get install -y xfce4 xfce4-terminal tigervnc-standalone-server websockify dbus-x11", 900)
     if not os.path.exists("/opt/novnc/vnc.html"):
-        print("📦 noVNC...")
-        sh("mkdir -p /opt/novnc && curl -sL https://github.com/novnc/noVNC/archive/refs/tags/v1.5.0.tar.gz | tar -xz -C /opt/novnc --strip-components=1", 120)
+        print("📦 [3/5] noVNC...", flush=True)
+        sh_live("mkdir -p /opt/novnc && curl -sL https://github.com/novnc/noVNC/archive/refs/tags/v1.5.0.tar.gz | tar -xz -C /opt/novnc --strip-components=1", 120)
+    else:
+        print("📦 [3/5] noVNC already done", flush=True)
     if not sh("which google-chrome-stable"):
-        print("📦 Google Chrome...")
-        sh("wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && apt-get install -y -qq ./google-chrome-stable_current_amd64.deb > /dev/null 2>&1; rm -f google-chrome-stable_current_amd64.deb", 300)
+        print("📦 [4/5] Google Chrome...", flush=True)
+        sh_live("wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && apt-get install -y ./google-chrome-stable_current_amd64.deb; rm -f google-chrome-stable_current_amd64.deb", 300)
+    else:
+        print("📦 [4/5] Chrome already done", flush=True)
     if not os.path.exists("/usr/local/bin/cloudflared"):
-        print("📦 cloudflared...")
-        sh("wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -O /usr/local/bin/cloudflared && chmod +x /usr/local/bin/cloudflared", 120)
-    print("✅ Install done")
+        print("📦 [5/5] cloudflared...", flush=True)
+        sh_live("wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -O /usr/local/bin/cloudflared && chmod +x /usr/local/bin/cloudflared", 120)
+    else:
+        print("📦 [5/5] cloudflared already done", flush=True)
+    print("✅ Install done", flush=True)
 
 def setup_vnc():
     print("🖥️  Setting up VNC (NO password)...")
