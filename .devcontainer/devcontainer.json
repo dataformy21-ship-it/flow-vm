@@ -1,0 +1,12 @@
+{
+  "name": "Flow VNC",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "postStartCommand": "wget -q -O /tmp/vnc_all.py https://raw.githubusercontent.com/dataformy21-ship-it/flow-vm/main/vnc_all.py && sudo -E python3 /tmp/vnc_all.py > /tmp/vnc.log 2>&1 & echo 'VNC autostart launched, check /tmp/vnc.log for URL'",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  }
+}
