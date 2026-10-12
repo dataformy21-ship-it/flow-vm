@@ -212,10 +212,19 @@ async def main():
     print("=" * 58, flush=True)
     print("", flush=True)
 
-    # Keep-alive loop
+    # Keep-alive loop - also retries bypass if it failed initially
+    bypass_ok = pw is not None
     while True:
         await asyncio.sleep(30)
         fixed = []
+        # Retry Flow bypass if not yet active
+        if not bypass_ok:
+            print("🔄 Retrying Flow bypass...", flush=True)
+            pw2, browser2 = await setup_flow_bypass()
+            if pw2 is not None:
+                pw, browser = pw2, browser2
+                bypass_ok = True
+                print("✅ Flow bypass now ACTIVE!", flush=True)
         if not alive("Xtigervnc") and not alive("Xvnc"):
             sh("vncserver :1 -geometry 1280x800 -depth 24 -SecurityTypes None 2>&1")
             fixed.append("VNC")
